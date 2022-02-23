@@ -119,6 +119,29 @@ class AuthHandler with StaticToken {
     }
   }
 
+  /// Try to login user using social account via Firebase.
+  Future<void> socialLogin({
+    required String firebaseToken
+  }) async {
+    final data = {
+      'token': firebaseToken
+    };
+
+    try {
+      final dioResponse = await client.post('auth/login', data: data);
+      final loginDataResponse = AuthResponse.fromResponse(dioResponse);
+      await storage.storeLoginData(loginDataResponse);
+
+      tokens = loginDataResponse;
+      currentUser = CurrentUser(client: client);
+      tfa = Tfa(client: client);
+
+      await _emitter.emitAsync('login', loginDataResponse);
+    } catch (e) {
+      throw DirectusError.fromDio(e);
+    }
+  }
+
   /// Logout user
   Future<void> logout() async {
     if (tokens == null) throw DirectusError(message: 'User is not logged in.');
